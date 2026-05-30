@@ -61,6 +61,7 @@ export async function drawCalendar(year, monthIndex, events, {
     otherDayTextColor = '#707070',
     dayBackColor = '#fff',
     otherDayBackColor = '#cdcdcd',
+    eventDayBackColor = '#edcdfd',
     monthTextX = 1890,
     monthTextY = 180,
     monthTextColor = '#fff',
@@ -111,8 +112,10 @@ export async function drawCalendar(year, monthIndex, events, {
     }
 
     function drawDay(dayMonthIndex, day, x, y, width, height, grayOut = false) {
+        const dayEvents = events.filter(e => e.date.getMonth() === dayMonthIndex && e.date.getDate() === day);
+
         // draw bg
-        c.fillStyle = grayOut ? otherDayBackColor : dayBackColor;
+        c.fillStyle = grayOut ? otherDayBackColor : (dayEvents.length === 0 ? dayBackColor : eventDayBackColor);
         c.fillRect(x, y, width, height);
 
         // draw day number
@@ -129,16 +132,16 @@ export async function drawCalendar(year, monthIndex, events, {
         c.rect(x, y, width, height);
         c.stroke();
 
-        const dayEvents = events.filter(e => e.date.getMonth() === dayMonthIndex && e.date.getDate() === day);
+        // Event text
         c.fillStyle = '#241649';
         if (dayEvents.length === 1) {
             c.font = '30px opensans';
-            textWrap(c, strip(dayEvents[0].name).trim(), x + 10, y + 55, width - 30, 30, 4);
+            textWrap(c, strip(dayEvents[0].simpleName).trim(), x + 10, y + 55, width - 30, 30, 4);
         }
         else if (dayEvents.length > 1) {
             c.font = '30px opensans';
-            textWrap(c, strip(dayEvents[0].name).trim(), x + 10, y + 55, width - 30, 30, 1);
-            textWrap(c, strip(dayEvents[1].name).trim(), x + 10, y + 100, width - 30, 30, 1);
+            textWrap(c, strip(dayEvents[0].simpleName).trim(), x + 10, y + 55, width - 30, 30, 1);
+            textWrap(c, strip(dayEvents[1].simpleName).trim(), x + 10, y + 100, width - 30, 30, 1);
 
             if (dayEvents.length > 2) {
                 c.textAlign = 'end';
