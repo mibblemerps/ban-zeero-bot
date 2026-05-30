@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import textWrap from "./text-wrap.js";
 import * as fs from "node:fs";
 import {createWritableBuffer} from "./writable-buffer.js";
+import {strip} from "./strip-emoji.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -129,14 +130,15 @@ export async function drawCalendar(year, monthIndex, events, {
         c.stroke();
 
         const dayEvents = events.filter(e => e.date.getMonth() === dayMonthIndex && e.date.getDate() === day);
+        c.fillStyle = '#241649';
         if (dayEvents.length === 1) {
             c.font = '30px opensans';
-            textWrap(c, dayEvents[0].name, x + 10, y + 55, width - 30, 30, 4);
+            textWrap(c, strip(dayEvents[0].name).trim(), x + 10, y + 55, width - 30, 30, 4);
         }
         else if (dayEvents.length > 1) {
             c.font = '30px opensans';
-            textWrap(c, dayEvents[0].name, x + 10, y + 55, width - 30, 30, 1);
-            textWrap(c, dayEvents[1].name, x + 10, y + 100, width - 30, 30, 1);
+            textWrap(c, strip(dayEvents[0].name).trim(), x + 10, y + 55, width - 30, 30, 1);
+            textWrap(c, strip(dayEvents[1].name).trim(), x + 10, y + 100, width - 30, 30, 1);
 
             if (dayEvents.length > 2) {
                 c.textAlign = 'end';

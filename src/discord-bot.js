@@ -1,4 +1,4 @@
-import {AttachmentBuilder, Client, Events, GatewayIntentBits} from 'discord.js';
+import {AttachmentBuilder, Client, Events, GatewayIntentBits, MessageFlags} from 'discord.js';
 import {Event} from "./calendar.js";
 import {drawCalendar} from "./calendar-draw.js";
 import { setTimeout } from 'node:timers/promises';
@@ -62,7 +62,10 @@ async function doRefresh(){
 
     // Send new calendar
     const attachment = new AttachmentBuilder(image, {name: 'calendar.png'});
-    await channel.send({files: [attachment]});
+    await channel.send({
+        files: [attachment],
+        flags: [MessageFlags.SuppressNotifications]
+    });
 }
 
 /**
