@@ -1,19 +1,7 @@
-import {AttachmentBuilder, Client, EmbedBuilder, Events, GatewayIntentBits, MessageFlags} from 'discord.js';
-import {Event} from "./calendar.js";
-import {drawCalendar} from "./calendar-draw.js";
-import { setTimeout } from 'node:timers/promises';
-import {generateMeetEmbeds} from "./meet-list.js";
+import {Client, Events, GatewayIntentBits} from 'discord.js';
+import {MeetsBot} from "./meets/meets-bot.js";
 
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
-const APOLLO_BOT_ID = process.env.APOLLO_BOT_ID ?? '475744554910351370';
-const EVENT_CHANNEL = process.env.EVENT_CHANNEL;
-const CALENDAR_CHANNEL = process.env.CALENDAR_CHANNEL ?? EVENT_CHANNEL;
-
-// If true the calendar will be re-generated momentarily.
-let doesCalendarNeedRefresh = false;
-
-// This is used to see if any events have changed.
-let lastEventsJson = null;
 
 const client = new Client({ intents: [
     GatewayIntentBits.Guilds,
@@ -23,145 +11,10 @@ const client = new Client({ intents: [
 
 client.once(Events.ClientReady, (readyClient) => {
     console.log(`Discord bot ready. Logged in as ${readyClient.user.tag}`);
-
-    doesCalendarNeedRefresh = true;
 });
 
-async function handleMessageEvent(messageEvent) {
-    if (!messageEvent.author || messageEvent.author.id.toString() !== APOLLO_BOT_ID) return;
-    if (messageEvent.channelId.toString() !== EVENT_CHANNEL) return;
-
-    doesCalendarNeedRefresh = true;
-}
-
-client.on(Events.MessageCreate, handleMessageEvent);
-client.on(Events.MessageUpdate, (oldMessage, newMessage) => handleMessageEvent(newMessage));
-client.on(Events.MessageDelete, handleMessageEvent);
-
-/**
- * Find events and re-post updated calendar.
- *
- * @param {string} force Should force refreshing the calendar even if no events have changed?
- * @return {Promise<void>}
- */
-async function doRefresh(force = false){
-    const events = await getEvents();
-    if (!force && !hasCalendarChanged(events)) {
-        return; // events haven't changed
-    }
-
-    const now = new Date();
-    const image = await drawCalendar(now.getFullYear(), now.getMonth(), events, {});
-
-    const channel = await client.channels.fetch(CALENDAR_CHANNEL);
-
-    // Delete previous calendars
-    const messages = await channel.messages.fetch({limit: 50});
-    for (const message of messages.filter(m => m.author.id === client.user.id)) {
-        await message[1].delete();
-    }
-
-    // Send new meets list
-    const minDate = new Date();
-    minDate.setDate(minDate.getDate() - 1);
-    await channel.send({
-        content: '# :star: Meets List :star:',
-        embeds: generateMeetEmbeds(events.filter(e => e.date > minDate)),
-        flags: [MessageFlags.SuppressNotifications]
-    });
-
-    // Send new calendar
-    const attachment = new AttachmentBuilder(image, {name: 'calendar.png'});
-    await channel.send({
-        files: [attachment],
-        flags: [MessageFlags.SuppressNotifications]
-    });
-}
-
-/**
- * Find events posted in the events channel.
- *
- * @return {Promise<Event[]>}
- */
-async function getEvents() {
-    const channel = await client.channels.fetch(EVENT_CHANNEL);
-
-    const messages = await channel.messages.fetch({
-        limit: 100,
-        cache: false,
-    });
-
-    let events = [];
-
-    for (let messageData of messages) {
-        const message = messageData[1];
-        try {
-            if (message.author.id.toString() !== APOLLO_BOT_ID) continue;
-
-            const title = message.embeds[0].title;
-            const description = message.embeds[0].description;
-            const createdBy = message.embeds[0].footer;
-
-            const timeStr = message.embeds[0].fields[0].value;
-            const regex = new RegExp('^<t:([\\d]+):F>(?: - <t:([\\d]+):t>)?');
-            const match = regex.exec(timeStr);
-
-            const startTime = new Date(parseInt(match[1]) * 1000);
-            const endTime = match[2] === undefined ? null : new Date(parseInt(match[2]) * 1000);
-
-            const event = new Event(title, startTime, description);
-            event.messageId = message.id;
-            event.channelId = EVENT_CHANNEL;
-            events.push(event);
-        } catch (e) {
-            // failed to process message, presumably it wasn't an event message so we just ignore
-        }
-    }
-
-    return events;
-}
-
-function hasCalendarChanged(events) {
-    const currentEventsJson = JSON.stringify(events);
-
-    if (lastEventsJson === null) {
-        lastEventsJson = currentEventsJson;
-        return true;
-    }
-
-    const hasChanged = currentEventsJson !== lastEventsJson;
-    lastEventsJson = currentEventsJson;
-    return hasChanged;
-}
+const meets = new MeetsBot(client);
 
 export async function start() {
     await client.login(DISCORD_TOKEN);
-
-    let month = (new Date()).getMonth();
-    let monthChanged = false;
-
-    // Refresh loop
-    const _ = (async function() {
-        while (true) {
-            if (doesCalendarNeedRefresh || monthChanged) {
-                doesCalendarNeedRefresh = false;
-                try {
-                    await doRefresh(monthChanged);
-                } catch (e) {
-                    console.error('Failed to refresh calendar.', e);
-                }
-            }
-
-            await setTimeout(1000);
-
-            // check if month has changed
-            monthChanged = false;
-            const newMonth = (new Date()).getMonth();
-            if (month !== newMonth) {
-                console.log(`Month changed ${month} -> ${newMonth}`);
-                month = newMonth;
-                monthChanged = true;
-            }
-        }
-    })();
 }

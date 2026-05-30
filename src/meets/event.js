@@ -1,13 +1,4 @@
-import {strip} from "./strip-emoji.js";
-
-export class Calendar {
-    constructor() {
-        /**
-         * @type {Event[]}
-         */
-        this.events = [];
-    }
-}
+import {strip} from "../strip-emoji.js";
 
 export class Event {
     /**

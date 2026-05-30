@@ -1,18 +1,18 @@
-import {Calendar, Event} from './calendar.js';
+import {Event} from './event.js';
 import * as PImage from 'pureimage';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import textWrap from "./text-wrap.js";
+import textWrap from "../text-wrap.js";
 import * as fs from "node:fs";
-import {createWritableBuffer} from "./writable-buffer.js";
-import {strip} from "./strip-emoji.js";
+import {createWritableBuffer} from "../writable-buffer.js";
+import {strip} from "../strip-emoji.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-PImage.registerFont(path.join(__dirname, '../fonts', 'OpenSans-Light.ttf'), 'opensans-light').loadSync();
-PImage.registerFont(path.join(__dirname, '../fonts', 'OpenSans-Regular.ttf'), 'opensans').loadSync();
-PImage.registerFont(path.join(__dirname, '../fonts', 'OpenSans-Bold.ttf'), 'opensans-bold').loadSync();
+PImage.registerFont(path.join(__dirname, '../../fonts', 'OpenSans-Light.ttf'), 'opensans-light').loadSync();
+PImage.registerFont(path.join(__dirname, '../../fonts', 'OpenSans-Regular.ttf'), 'opensans').loadSync();
+PImage.registerFont(path.join(__dirname, '../../fonts', 'OpenSans-Bold.ttf'), 'opensans-bold').loadSync();
 
 const months = [
     'January',
@@ -73,7 +73,7 @@ export async function drawCalendar(year, monthIndex, events, {
     c.fillRect(calendarX, calendarY, calendarWidth, calendarHeight);
 
     // Draw header image
-    const headerImg = await PImage.decodePNGFromStream(fs.createReadStream(path.join(__dirname, '../img/header.png')));
+    const headerImg = await PImage.decodePNGFromStream(fs.createReadStream(path.join(__dirname, '../../img/header.png')));
     c.drawImage(headerImg, 0, 0);
 
     // Draw header
