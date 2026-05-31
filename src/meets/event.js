@@ -18,7 +18,8 @@ export class Event {
     get simpleName() {
         return strip(this.name)
             .trim()
-            .replace(/^anthros sa ?[-@:]? /i, '')
+            .replace(/^anthros sa ?[-@:] /i, '')
+            .replace(/:[a-z]+:/ig, '')
             .trim();
     }
 }
