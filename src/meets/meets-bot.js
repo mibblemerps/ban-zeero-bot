@@ -158,7 +158,7 @@ export class MeetsBot {
             }
         }
 
-        return events;
+        return events.sort((a, b) => a.date > b.date ? 1 : (a.date < b.date ? -1 : 0));
     }
 
     hasCalendarChanged(events) {
