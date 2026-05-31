@@ -81,18 +81,23 @@ export class MeetsBot {
             return; // events haven't changed
         }
 
+        console.log('Refreshing calendar...');
+
         const now = new Date();
-        const image = await drawCalendar(now.getFullYear(), now.getMonth(), events, {});
+        const currentCalendar = await drawCalendar(now.getFullYear(), now.getMonth(), events, {});
+        const nextCalendar = await drawCalendar(now.getFullYear(), now.getMonth() + 1, events, {});
 
         const channel = await this.client.channels.fetch(CALENDAR_CHANNEL);
 
-        // Delete previous calendars
+        // Delete previous bot messages
+        console.debug('Deleting previous bot messages...');
         const messages = await channel.messages.fetch({limit: 50});
         for (const message of messages.filter(m => m.author.id === this.client.user.id)) {
             await message[1].delete();
         }
 
         // Send new meets list
+        console.debug('Sending new meets list...')
         const minDate = new Date();
         minDate.setDate(minDate.getDate() - 1);
         await channel.send({
@@ -102,9 +107,13 @@ export class MeetsBot {
         });
 
         // Send new calendar
-        const attachment = new AttachmentBuilder(image, {name: 'calendar.png'});
+        console.debug('Sending new calendars...');
         await channel.send({
-            files: [attachment],
+            files: [new AttachmentBuilder(currentCalendar, {name: 'calendar.png'})],
+            flags: [MessageFlags.SuppressNotifications]
+        });
+        await channel.send({
+            files: [new AttachmentBuilder(nextCalendar, {name: 'calendar.png'})],
             flags: [MessageFlags.SuppressNotifications]
         });
     }
@@ -145,7 +154,7 @@ export class MeetsBot {
                 event.channelId = EVENT_CHANNEL;
                 events.push(event);
             } catch (e) {
-                // failed to process message, presumably it wasn't an event message so we just ignore
+                console.log(`Unable to parse Apollo message ${message.id}. It probably wasn't an event message.`);
             }
         }
 
