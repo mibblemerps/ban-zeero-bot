@@ -4,12 +4,14 @@ export class Event {
     /**
      *
      * @param {string} name
-     * @param {Date} date
+     * @param {Date} startsAt
+     * @param {Date} endsAt
      * @param {string} description
      */
-    constructor(name, date, description) {
+    constructor(name, startsAt, endsAt, description) {
         this.name = name;
-        this.date = date;
+        this.startsAt = startsAt;
+        this.endsAt = endsAt;
         this.description = description;
         this.messageId = null;
         this.channelId = null;

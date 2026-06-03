@@ -112,7 +112,17 @@ export async function drawCalendar(year, monthIndex, events, {
     }
 
     function drawDay(dayMonthIndex, day, x, y, width, height, grayOut = false) {
-        const dayEvents = events.filter(e => e.date.getMonth() === dayMonthIndex && e.date.getDate() === day);
+        const dayEvents = events.filter(e =>
+        {
+            if (e.startsAt.getMonth() !== dayMonthIndex) {
+                return false;
+            }
+
+            const minDate = e.startsAt.getDate();
+            const maxDate = e.endsAt?.getDate() ?? minDate;
+
+            return day >= minDate && day <= maxDate;
+        });
 
         // draw bg
         c.fillStyle = grayOut ? otherDayBackColor : (dayEvents.length === 0 ? dayBackColor : eventDayBackColor);

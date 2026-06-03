@@ -102,7 +102,7 @@ export class MeetsBot {
         minDate.setDate(minDate.getDate() - 1);
         await channel.send({
             content: '# :star: Meets List :star:',
-            embeds: generateMeetEmbeds(events.filter(e => e.date > minDate)),
+            embeds: generateMeetEmbeds(events.filter(e => e.startsAt > minDate)),
             flags: [MessageFlags.SuppressNotifications]
         });
 
@@ -143,13 +143,13 @@ export class MeetsBot {
                 const createdBy = message.embeds[0].footer;
 
                 const timeStr = message.embeds[0].fields[0].value;
-                const regex = new RegExp('^<t:([\\d]+):F>(?: - <t:([\\d]+):t>)?');
+                const regex = new RegExp(/^<t:([\d]+):[a-z]>(?: - <t:([\d]+):[a-z]>)?/i);
                 const match = regex.exec(timeStr);
 
                 const startTime = new Date(parseInt(match[1]) * 1000);
                 const endTime = match[2] === undefined ? null : new Date(parseInt(match[2]) * 1000);
 
-                const event = new Event(title, startTime, description);
+                const event = new Event(title, startTime, endTime, description);
                 event.messageId = message.id;
                 event.channelId = EVENT_CHANNEL;
                 events.push(event);
@@ -158,7 +158,7 @@ export class MeetsBot {
             }
         }
 
-        return events.sort((a, b) => a.date > b.date ? 1 : (a.date < b.date ? -1 : 0));
+        return events.sort((a, b) => a.startsAt > b.startsAt ? 1 : (a.startsAt < b.startsAt ? -1 : 0));
     }
 
     hasCalendarChanged(events) {
