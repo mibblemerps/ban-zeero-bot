@@ -149,9 +149,9 @@ export async function drawCalendar(year, monthIndex, events, {
             textWrap(c, strip(dayEvents[0].simpleName).trim(), x + 10, y + 55, width - 30, 30, 4);
         }
         else if (dayEvents.length > 1) {
-            c.font = '30px opensans';
-            textWrap(c, strip(dayEvents[0].simpleName).trim(), x + 10, y + 55, width - 30, 30, 1);
-            textWrap(c, strip(dayEvents[1].simpleName).trim(), x + 10, y + 100, width - 30, 30, 1);
+            c.font = '28px opensans';
+            textWrap(c, strip(dayEvents[0].simpleName).trim(), x + 10, y + 55, width - 30, 28, 2);
+            textWrap(c, strip(dayEvents[1].simpleName).trim(), x + 10, y + 125, width - 30, 28, 2);
 
             if (dayEvents.length > 2) {
                 c.textAlign = 'end';
