@@ -21,6 +21,13 @@ export class MeetsBot {
         // This is used to see if any events have changed.
         this._lastEventsJson = null;
 
+        /**
+         * Should the calendar refresh daily and highlight the current day?
+         *
+         * @type {boolean}
+         */
+        this.refreshDaily = true;
+
         if (client.isReady()) {
             this._ready();
         } else {
@@ -43,13 +50,16 @@ export class MeetsBot {
 
         // Refresh loop
         let month = (new Date()).getMonth();
+        let day = (new Date()).getDate();
         let monthChanged = false;
+        let dayChanged = false;
         const _ = (async () => {
             while (true) {
-                if (this._needsRefresh || monthChanged) {
+                const dayOrMonthChange = monthChanged || (dayChanged && this.refreshDaily);
+                if (this._needsRefresh || dayOrMonthChange) {
                     this._needsRefresh = false;
                     try {
-                        await this.doRefresh(monthChanged);
+                        await this.doRefresh(dayOrMonthChange);
                     } catch (e) {
                         console.error('Failed to refresh calendar.', e);
                     }
@@ -64,6 +74,15 @@ export class MeetsBot {
                     console.log(`Month changed ${month} -> ${newMonth}`);
                     month = newMonth;
                     monthChanged = true;
+                }
+
+                // check if day has changed
+                dayChanged = false;
+                const newDay = (new Date()).getDate();
+                if (day !== newDay) {
+                    console.log(`Day changed ${day} -> ${newDay}`);
+                    day = newDay;
+                    dayChanged = true;
                 }
             }
         })();
@@ -84,8 +103,12 @@ export class MeetsBot {
         console.log('Refreshing calendar...');
 
         const now = new Date();
-        const currentCalendar = await drawCalendar(now.getFullYear(), now.getMonth(), events, {});
-        const nextCalendar = await drawCalendar(now.getFullYear(), now.getMonth() + 1, events, {});
+        const currentCalendar = await drawCalendar(now.getFullYear(), now.getMonth(), events, {
+            shouldHighlightToday: this.refreshDaily,
+        });
+        const nextCalendar = await drawCalendar(now.getFullYear(), now.getMonth() + 1, events, {
+            shouldHighlightToday: this.refreshDaily,
+        });
 
         const channel = await this.client.channels.fetch(CALENDAR_CHANNEL);
 

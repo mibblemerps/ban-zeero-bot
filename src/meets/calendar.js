@@ -47,6 +47,7 @@ const months = [
  * @param otherDayBackColor
  */
 export async function drawCalendar(year, monthIndex, events, {
+    shouldHighlightToday = true,
     canvasWidth = 1920,
     canvasHeight = 1500,
     calendarWidth = 1920,
@@ -59,9 +60,12 @@ export async function drawCalendar(year, monthIndex, events, {
     lineWidth = 5,
     dayTextColor = '#000000',
     otherDayTextColor = '#707070',
+    eventTextColor = '#241649',
+    todayDayEventTextColor = '#010e25',
     dayBackColor = '#fff',
     otherDayBackColor = '#cdcdcd',
     eventDayBackColor = '#edcdfd',
+    todayDayColor = '#6badd1',
     monthTextX = 1890,
     monthTextY = 180,
     monthTextColor = '#fff',
@@ -124,8 +128,14 @@ export async function drawCalendar(year, monthIndex, events, {
             return day >= minDate && day <= maxDate;
         });
 
+        const now = new Date();
+        const isToday = now.getDate() === day && now.getMonth() === dayMonthIndex;
+
         // draw bg
         c.fillStyle = grayOut ? otherDayBackColor : (dayEvents.length === 0 ? dayBackColor : eventDayBackColor);
+        if (isToday && shouldHighlightToday) {
+            c.fillStyle = todayDayColor;
+        }
         c.fillRect(x, y, width, height);
 
         // draw day number
@@ -143,7 +153,7 @@ export async function drawCalendar(year, monthIndex, events, {
         c.stroke();
 
         // Event text
-        c.fillStyle = '#241649';
+        c.fillStyle = isToday && shouldHighlightToday ? todayDayEventTextColor : eventTextColor;
         if (dayEvents.length === 1) {
             c.font = '30px opensans';
             textWrap(c, strip(dayEvents[0].simpleName).trim(), x + 10, y + 55, width - 30, 30, 4);
