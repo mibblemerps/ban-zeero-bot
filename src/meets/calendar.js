@@ -65,7 +65,7 @@ export async function drawCalendar(year, monthIndex, events, {
     dayBackColor = '#fff',
     otherDayBackColor = '#cdcdcd',
     eventDayBackColor = '#edcdfd',
-    todayDayColor = '#6badd1',
+    todayDayColor = '#7dc7ef',
     monthTextX = 1890,
     monthTextY = 180,
     monthTextColor = '#fff',
