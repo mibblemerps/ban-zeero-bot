@@ -3,6 +3,7 @@ import {Event} from './event.js';
 import {drawCalendar} from './calendar.js';
 import { setTimeout } from 'node:timers/promises';
 import {generateMeetEmbeds} from './meet-list.js';
+import MeetsArchive from "./meets-archive.js";
 
 const APOLLO_BOT_ID = process.env.APOLLO_BOT_ID ?? '475744554910351370';
 const EVENT_CHANNEL = process.env.EVENT_CHANNEL;
@@ -28,6 +29,8 @@ export class MeetsBot {
          */
         this.refreshDaily = true;
 
+        this._meetsArchive = new MeetsArchive(process.env.MEETS_ARCHIVE_FILE ?? 'archived-meets.json');
+
         if (client.isReady()) {
             this._ready();
         } else {
@@ -47,6 +50,22 @@ export class MeetsBot {
         this.client.on(Events.MessageCreate, handleMessageEvent);
         this.client.on(Events.MessageUpdate, (oldMessage, newMessage) => handleMessageEvent(newMessage));
         this.client.on(Events.MessageDelete, handleMessageEvent);
+
+        // Handle deleted events: deleted events are archived locally so they can remain on the calendar.
+        this.client.on(Events.MessageDelete, async (messageEvent) => {
+            if (!messageEvent.author || messageEvent.author.id.toString() !== APOLLO_BOT_ID) return;
+            if (messageEvent.channelId.toString() !== EVENT_CHANNEL) return;
+
+            const event = this._parseMessage(messageEvent);
+            if (event.startsAt > new Date()) {
+                // this event is in the future; we don't archive future events
+                return;
+            }
+
+            await this._meetsArchive.archive(event);
+
+            this._needsRefresh = true;
+        });
 
         // Refresh loop
         let month = (new Date()).getMonth();
@@ -100,6 +119,11 @@ export class MeetsBot {
             return; // events haven't changed
         }
 
+        // Load any archived events
+        for (const archivedEvent of this._meetsArchive.events) {
+            events.push(archivedEvent);
+        }
+
         console.log('Refreshing calendar...');
 
         const now = new Date();
@@ -147,38 +171,17 @@ export class MeetsBot {
      * @return {Promise<Event[]>}
      */
     async getEvents() {
-        const channel = await this.client.channels.fetch(EVENT_CHANNEL);
+        let events = [];
 
+        // Load events from events channel
+        const channel = await this.client.channels.fetch(EVENT_CHANNEL);
         const messages = await channel.messages.fetch({
             limit: 100,
             cache: false,
         });
-
-        let events = [];
-
         for (let messageData of messages) {
-            const message = messageData[1];
-            try {
-                if (message.author.id.toString() !== APOLLO_BOT_ID) continue;
-
-                const title = message.embeds[0].title;
-                const description = message.embeds[0].description;
-                const createdBy = message.embeds[0].footer;
-
-                const timeStr = message.embeds[0].fields[0].value;
-                const regex = new RegExp(/^<t:([\d]+):[a-z]>(?: - <t:([\d]+):[a-z]>)?/i);
-                const match = regex.exec(timeStr);
-
-                const startTime = new Date(parseInt(match[1]) * 1000);
-                const endTime = match[2] === undefined ? null : new Date(parseInt(match[2]) * 1000);
-
-                const event = new Event(title, startTime, endTime, description);
-                event.messageId = message.id;
-                event.channelId = EVENT_CHANNEL;
-                events.push(event);
-            } catch (e) {
-                console.log(`Unable to parse Apollo message ${message.id}. It probably wasn't an event message.`);
-            }
+            const message = this._parseMessage(messageData[1]);
+            if (message !== null) events.push(message);
         }
 
         return events.sort((a, b) => a.startsAt > b.startsAt ? 1 : (a.startsAt < b.startsAt ? -1 : 0));
@@ -195,5 +198,35 @@ export class MeetsBot {
         const hasChanged = currentEventsJson !== this._lastEventsJson;
         this._lastEventsJson = currentEventsJson;
         return hasChanged;
+    }
+
+    _parseMessage(message) {
+        try {
+            if (message.author.id.toString() !== APOLLO_BOT_ID) return null;
+
+            const title = message.embeds[0].title;
+            const description = message.embeds[0].description;
+            const createdBy = message.embeds[0].footer;
+
+            const timeStr = message.embeds[0].fields[0].value;
+            const regex = new RegExp(/^<t:([\d]+):[a-z]>(?: - <t:([\d]+):[a-z]>)?/i);
+            const match = regex.exec(timeStr);
+
+            const startTime = new Date(parseInt(match[1]) * 1000);
+            const endTime = match[2] === undefined ? null : new Date(parseInt(match[2]) * 1000);
+
+            const event = new Event();
+            event.name = title;
+            event.startsAt = startTime;
+            event.endsAt = endTime;
+            event.description = description;
+            event.createdBy = createdBy;
+            event.messageId = message.id;
+            event.channelId = EVENT_CHANNEL;
+            return event;
+        } catch (e) {
+            console.log(`Unable to parse Apollo message ${message.id}. It probably wasn't an event message.`);
+            return null;
+        }
     }
 }
