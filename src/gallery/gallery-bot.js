@@ -83,7 +83,7 @@ export class GalleryBot {
         let link;
         try {
             link = await this.access(interaction.member);
-            await interaction.editReply(link);
+            await interaction.editReply(`Your one-time link: <${link}>`);
         } catch (e) {
             console.warn(`Failed to fetch OTP link for ${interaction.member}: ${e.message}`);
             await interaction.editReply('⚠️ Failed to access photo gallery. Please try again later.');
