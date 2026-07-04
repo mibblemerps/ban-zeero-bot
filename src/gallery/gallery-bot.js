@@ -45,10 +45,10 @@ export class GalleryBot {
      * @return {Promise<void>}
      */
     async sendStatistics() {
-        console.log('Sending statistics...');
-        const guild = this.client.guilds.cache.first();
+        const guild = (await this.client.guilds.fetch()).first();
         if (!guild) return;
-        console.log('Sending statistics for ' + guild.name);
+
+        console.log('Sending statistics...');
 
         await axios.post(WEBSITE + '/api/statistics', {
             memberCount: guild.memberCount,
@@ -58,8 +58,6 @@ export class GalleryBot {
             },
             timeout: 5000
         });
-
-        console.log('Sent statistics');
     }
 
     commands() {
@@ -107,6 +105,6 @@ export class GalleryBot {
             } catch (e) {
                 console.warn('Send statistics failed', e);
             }
-        }, 60 * 1000);
+        }, 300 * 1000);
     }
 }
