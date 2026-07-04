@@ -45,7 +45,8 @@ export class GalleryBot {
      * @return {Promise<void>}
      */
     async sendStatistics() {
-        const guild = (await this.client.guilds.fetch()).first();
+        await this.client.guilds.fetch();
+        const guild = this.client.guilds.cache.first();
         if (!guild) return;
 
         console.log('Sending statistics...');
