@@ -98,7 +98,9 @@ export class GalleryBot {
             }
         });
 
-        this.sendStatistics();
+        this.sendStatistics().catch(e => {
+            console.warn('Send statistics failed', e);
+        });
 
         setInterval(async () => {
             try {
