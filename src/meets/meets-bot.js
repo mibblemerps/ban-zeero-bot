@@ -153,6 +153,12 @@ export class MeetsBot {
             flags: [MessageFlags.SuppressNotifications]
         });
 
+        // Community event message
+        await channel.send({
+            content: '> Want to host an event? Open a ticket in <#1385609657908858900> for the meet maker role!',
+            flags: [MessageFlags.SuppressNotifications]
+        });
+
         // Send new calendar
         console.debug('Sending new calendars...');
         await channel.send({
