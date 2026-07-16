@@ -18,7 +18,7 @@ export function generateMeetEmbed(event) {
         })
     } else {
         embed = embed.setFooter({
-            text: 'Hosted by ' + event.createdBy
+            text: 'Created by ' + event.createdBy
         });
     }
 
