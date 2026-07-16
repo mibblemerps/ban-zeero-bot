@@ -39,9 +39,10 @@ export default class MeetsArchive {
                 event.description = eventData.description;
                 event.startsAt = new Date(eventData.startsAt);
                 event.endsAt = new Date(eventData.endsAt);
-                event.createdBy = eventData.createdBy;
+                event.createdBy = (typeof(eventData.createdBy) === 'object') ? eventData.createdBy.text.replace('Multiple signups are permitted', '').replace('Created by', '').trim() : eventData.createdBy;
                 event.channelId = eventData.channelId;
                 event.messageId = eventData.messageId;
+                event.isOfficial = eventData.isOfficial ?? false;
 
                 this.events.push(event);
             }

@@ -1,13 +1,15 @@
-import {AttachmentBuilder, Client, EmbedBuilder, Events, MessageFlags} from 'discord.js';
+import {AttachmentBuilder, Client, EmbedBuilder, Events, MessageFlags, ContextMenuCommandBuilder, ApplicationCommandType} from 'discord.js';
 import {Event} from './event.js';
 import {drawCalendar} from './calendar.js';
 import { setTimeout } from 'node:timers/promises';
 import {generateMeetEmbeds} from './meet-list.js';
 import MeetsArchive from "./meets-archive.js";
+import {OfficialMeets} from "./official-meets.js";
 
 const APOLLO_BOT_ID = process.env.APOLLO_BOT_ID ?? '475744554910351370';
 const EVENT_CHANNEL = process.env.EVENT_CHANNEL;
 const CALENDAR_CHANNEL = process.env.CALENDAR_CHANNEL ?? EVENT_CHANNEL;
+const OFFICIAL_MEET_MAKER_ROLE = process.env.OFFICIAL_MEET_MAKER_ROLE;
 
 export class MeetsBot {
     /**
@@ -31,11 +33,21 @@ export class MeetsBot {
 
         this._meetsArchive = new MeetsArchive(process.env.MEETS_ARCHIVE_FILE ?? 'archived-meets.json');
 
+        this._officalMeets = new OfficialMeets(process.env.MEETS_OFFICIAL_FILE ?? 'official-meets.json');
+
         if (client.isReady()) {
             this._ready();
         } else {
             client.once(Events.ClientReady, (readyClient) => this._ready());
         }
+    }
+
+    commands() {
+        return [
+            new ContextMenuCommandBuilder()
+                .setName('Mark event as official')
+                .setType(ApplicationCommandType.Message)
+        ];
     }
 
     _ready() {
@@ -65,6 +77,15 @@ export class MeetsBot {
             await this._meetsArchive.archive(event);
 
             this._needsRefresh = true;
+        });
+
+        // Commands
+        this.client.on(Events.InteractionCreate, async (interaction) => {
+            if (!interaction.isMessageContextMenuCommand()) return;
+
+            if (interaction.commandName === 'Mark event as official') {
+                await this._markEventOfficialCommand(interaction);
+            }
         });
 
         // Refresh loop
@@ -105,6 +126,38 @@ export class MeetsBot {
                 }
             }
         })();
+    }
+
+    /**
+     *
+     * @param {Interaction} interaction
+     * @private
+     */
+    async _markEventOfficialCommand(interaction) {
+        await interaction.deferReply({flags: MessageFlags.Ephemeral});
+
+        if (!interaction.member.roles.cache.some(role => role.id.toString() === OFFICIAL_MEET_MAKER_ROLE)) {
+            // no permission!
+            await interaction.editReply('⚠️ You don\'t have permission to use this command.', {flags: MessageFlags.Ephemeral});
+            return;
+        }
+
+        const events = await this.getEvents();
+        const meet = events.find(e => e.messageId === interaction.targetMessage.id);
+        if (!meet) {
+            await interaction.reply('⚠️ Not a valid meet.', {flags: MessageFlags.Ephemeral});
+        }
+
+        const isOfficial = this._officalMeets.isMeetOfficial(meet);
+        if (isOfficial) {
+            await this._officalMeets.setMeet(meet, false);
+            await interaction.editReply('✅ Meet has been marked *un-official*.', {flags: MessageFlags.Ephemeral});
+        } else {
+            await this._officalMeets.setMeet(meet, true);
+            await interaction.editReply('✅ Meet has been marked as *official*.', {flags: MessageFlags.Ephemeral});
+        }
+
+        this._needsRefresh = true;
     }
 
     /**
@@ -187,7 +240,9 @@ export class MeetsBot {
         });
         for (let messageData of messages) {
             const message = this._parseMessage(messageData[1]);
-            if (message !== null) events.push(message);
+            if (message !== null) {
+                events.push(message);
+            }
         }
 
         return events.sort((a, b) => a.startsAt > b.startsAt ? 1 : (a.startsAt < b.startsAt ? -1 : 0));
@@ -226,9 +281,12 @@ export class MeetsBot {
             event.startsAt = startTime;
             event.endsAt = endTime;
             event.description = description;
-            event.createdBy = createdBy;
+            event.createdBy = createdBy.text
+                .replace('Multiple signups are permitted', '')
+                .replace('Created by', '').trim();
             event.messageId = message.id;
             event.channelId = EVENT_CHANNEL;
+            event.isOfficial = this._officalMeets.isMeetOfficial(event);
             return event;
         } catch (e) {
             console.log(`Unable to parse Apollo message ${message.id}. It probably wasn't an event message.`);

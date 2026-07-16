@@ -36,6 +36,13 @@ export class Event {
          * @type {string|null}
          */
         this.channelId = null;
+
+        /**
+         * Is this an official ASSA meet.
+         *
+         * @type {boolean}
+         */
+        this.isOfficial = false;
     }
 
     get simpleName() {

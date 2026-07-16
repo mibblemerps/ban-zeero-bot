@@ -24,6 +24,9 @@ async function deployCommands() {
     for (const command of gallery.commands()) {
         commands.push(command.toJSON());
     }
+    for (const command of meets.commands()) {
+        commands.push(command.toJSON());
+    }
 
     const rest = new REST().setToken(process.env.DISCORD_TOKEN);
     await rest.put(Routes.applicationCommands(CLIENT_ID), {body: commands});
