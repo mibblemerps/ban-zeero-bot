@@ -145,7 +145,8 @@ export class MeetsBot {
         const events = await this.getEvents();
         const meet = events.find(e => e.messageId === interaction.targetMessage.id);
         if (!meet) {
-            await interaction.reply('⚠️ Not a valid meet.', {flags: MessageFlags.Ephemeral});
+            await interaction.editReply('⚠️ Not a valid meet.', {flags: MessageFlags.Ephemeral});
+            return;
         }
 
         const isOfficial = this._officalMeets.isMeetOfficial(meet);
@@ -170,11 +171,6 @@ export class MeetsBot {
         const events = await this.getEvents();
         if (!force && !this.hasCalendarChanged(events)) {
             return; // events haven't changed
-        }
-
-        // Load any archived events
-        for (const archivedEvent of this._meetsArchive.events) {
-            events.push(archivedEvent);
         }
 
         console.log('Refreshing calendar...');
@@ -243,6 +239,11 @@ export class MeetsBot {
             if (message !== null) {
                 events.push(message);
             }
+        }
+
+        // Load any archived events
+        for (const archivedEvent of this._meetsArchive.events) {
+            events.push(archivedEvent);
         }
 
         return events.sort((a, b) => a.startsAt > b.startsAt ? 1 : (a.startsAt < b.startsAt ? -1 : 0));
