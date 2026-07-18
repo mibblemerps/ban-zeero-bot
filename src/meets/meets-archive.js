@@ -37,8 +37,8 @@ export default class MeetsArchive {
                 const event = new Event();
                 event.name = eventData.name;
                 event.description = eventData.description;
-                event.startsAt = new Date(eventData.startsAt);
-                event.endsAt = new Date(eventData.endsAt);
+                event.startsAt = eventData.startsAt === null ? null : new Date(eventData.startsAt);
+                event.endsAt = eventData.endsAt === null ? null : new Date(eventData.endsAt);
                 event.createdBy = (typeof(eventData.createdBy) === 'object') ? eventData.createdBy.text.replace('Multiple signups are permitted', '').replace('Created by', '').trim() : eventData.createdBy;
                 event.channelId = eventData.channelId;
                 event.messageId = eventData.messageId;
