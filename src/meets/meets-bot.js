@@ -193,14 +193,25 @@ export class MeetsBot {
         }
 
         // Send new meets list
-        console.debug('Sending new meets list...')
+        console.debug('Sending new meets list...');
         const minDate = new Date();
         minDate.setDate(minDate.getDate() - 1);
+        const embeds = generateMeetEmbeds(events.filter(e => e.startsAt > minDate));
+
         await channel.send({
             content: '# :star: Meets List :star:',
-            embeds: generateMeetEmbeds(events.filter(e => e.startsAt > minDate)),
+            embeds: embeds.splice(0, 10), // 10 embeds max (discord limit)
             flags: [MessageFlags.SuppressNotifications]
         });
+
+        // send additional embeds if there was more than 10
+        while (embeds.length > 0) {
+            await channel.send({
+                content: '',
+                embeds: embeds.splice(0, 10),
+                flags: [MessageFlags.SuppressNotifications]
+            });
+        }
 
         // Community event message
         await channel.send({
